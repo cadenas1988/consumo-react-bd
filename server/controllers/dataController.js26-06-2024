@@ -1,0 +1,40 @@
+//const pool = require('../models/db');
+const oracledb = require('oracledb');
+const { pgPool, oracleConfig } = require('../models/db');
+const ExcelJS = require('exceljs');
+
+const exportData = async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT * FROM task'); // Reemplaza 'your_table' con tu tabla real
+    const data = result.rows;
+    client.release(); // Asegúrate de liberar el cliente
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [
+      { header: 'ID', key: 'id' },
+      { header: 'Title', key: 'title' },
+      { header: 'Descripcion', key: 'description' },
+      // Añade más columnas según sea necesario
+    ];
+
+    data.forEach((row) => {
+      worksheet.addRow(row);
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=data.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Error exporting data:', err);
+    res.status(500).send('Error exporting data');
+  }
+};
+
+module.exports = {
+  exportData,
+};
